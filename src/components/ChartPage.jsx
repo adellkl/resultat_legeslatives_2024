@@ -6,7 +6,7 @@ import { Link } from 'react-router-dom';
 const ChartPage = () => {
     const [results, setResults] = useState([]);
     const [selectedNuance, setSelectedNuance] = useState(''); // État pour le code de nuance sélectionné
-    const [searchQuery, setSearchQuery] = useState(''); // État pour la recherche de candidats
+    const [searchTerm, setSearchTerm] = useState(''); // État pour le terme de recherche parmi les candidats
 
     useEffect(() => {
         // Chargement des données depuis results.json (exemple)
@@ -76,20 +76,19 @@ const ChartPage = () => {
     // Gérer le changement du code de nuance sélectionné
     const handleNuanceChange = (event) => {
         setSelectedNuance(event.target.value);
-        setSearchQuery(''); // Réinitialiser le champ de recherche
     };
 
-    // Gérer le changement de la recherche
+    // Gérer le changement du terme de recherche
     const handleSearchChange = (event) => {
-        setSearchQuery(event.target.value);
+        setSearchTerm(event.target.value);
     };
 
-    // Filtrer les candidats par libelleNuance sélectionné et recherche
-    const filteredCandidates = results.filter(result => {
-        const matchesNuance = selectedNuance ? result.libelleNuance === selectedNuance : true;
-        const matchesSearch = searchQuery ? `${result.prenomCandidat} ${result.nomCandidat}`.toLowerCase().includes(searchQuery.toLowerCase()) : true;
-        return matchesNuance && matchesSearch;
-    });
+    // Filtrer les candidats par libelleNuance sélectionné et terme de recherche
+    const filteredCandidates = results.filter(result => 
+        (!selectedNuance || result.libelleNuance === selectedNuance) &&
+        (result.nomCandidat.toLowerCase().includes(searchTerm.toLowerCase()) || 
+         result.prenomCandidat.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
 
     // Options pour le graphique en barres
     const barOptions = {
@@ -120,15 +119,13 @@ const ChartPage = () => {
                             ))
                         )}
                     </select>
-                    {selectedNuance && (
-                        <input
-                            type="text"
-                            value={searchQuery}
-                            onChange={handleSearchChange}
-                            placeholder="Rechercher un candidat dans le parti"
-                            className="p-2 border border-gray-300 rounded mb-4 focus:outline-none bg-white text-gray-800 w-full"
-                        />
-                    )}
+                    <input
+                        type="text"
+                        value={searchTerm}
+                        onChange={handleSearchChange}
+                        placeholder="Rechercher un candidat"
+                        className="p-2 border border-gray-300 rounded mb-4 focus:outline-none bg-white text-gray-800 w-full"
+                    />
                     <div className="flex flex-col">
                         <Link to="/" className="p-2 bg-blue-600 text-white rounded mb-2 text-center hover:bg-blue-700 transition duration-300">Home</Link>
                     </div>
@@ -140,11 +137,11 @@ const ChartPage = () => {
                 <div style={{ height: '500px', width: '900px' }}>
                     <Bar data={prepareBarChartData()} options={barOptions} />
                 </div>
-                <div className="mt-8" style={{ marginTop: '50px', marginLeft:"50vh" }}>
-                    <h2 className="text-xl font-bold mb-4">Candidats pour le parti : {selectedNuance}</h2>
+                <div className="mt-8" style={{ marginTop: '50px' }}>
+                    <h2 className="text-xl font-bold mb-4 ml-6">Candidats pour le parti : {selectedNuance}</h2>
                     <ul>
                         {filteredCandidates.map(candidate => (
-                            <li key={candidate.id} className="mb-2">
+                            <li key={candidate.id} className="mb-2 ml-6">
                                 {candidate.prenomCandidat} {candidate.nomCandidat} ({candidate.civiliteCandidat}) - {candidate.departement}, {candidate.circonscription}
                             </li>
                         ))}
