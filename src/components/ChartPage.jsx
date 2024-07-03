@@ -5,15 +5,15 @@ import { Link } from 'react-router-dom';
 
 const ChartPage = () => {
     const [results, setResults] = useState([]);
-    const [selectedNuance, setSelectedNuance] = useState(''); // État pour le code de nuance sélectionné
-    const [searchTerm, setSearchTerm] = useState(''); // État pour le terme de recherche parmi les candidats
+    const [selectedNuance, setSelectedNuance] = useState('');
+    const [searchTerm, setSearchTerm] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const resultsPerPage = 5; 
 
     useEffect(() => {
-        // Chargement des données depuis results.json (exemple)
         fetch('/results.json')
             .then(response => response.json())
             .then(data => {
-                console.log('Data from results.json:', data); // Vérifiez les données reçues
                 setResults(data);
             })
             .catch(error => {
@@ -21,7 +21,6 @@ const ChartPage = () => {
             });
     }, []);
 
-    // Couleurs distinctes pour chaque libelleNuance
     const colorPalette = [
         '#1F77B4', '#FF7F0E', '#2CA02C', '#D62728', '#9467BD', '#8C564B', '#E377C2', '#7F7F7F', '#BCBD22', '#17BECF',
         '#AEC7E8', '#FFBB78', '#98DF8A', '#FF9896', '#C5B0D5', '#C49C94', '#F7B6D2', '#C7C7C7', '#DBDB8D', '#9EDAE5'
@@ -32,7 +31,6 @@ const ChartPage = () => {
         return colorPalette[index % colorPalette.length];
     };
 
-    // Fonction pour préparer les données du graphique en barres par libelleNuance
     const prepareBarChartData = () => {
         if (!results || results.length === 0) {
             return {
@@ -45,7 +43,6 @@ const ChartPage = () => {
             };
         }
 
-        // Calculer le nombre de candidats par libelleNuance
         const candidateCounts = {};
         results.forEach(result => {
             const key = result.libelleNuance;
@@ -56,7 +53,6 @@ const ChartPage = () => {
             }
         });
 
-        // Créer les labels et les données pour le graphique
         const labels = Object.keys(candidateCounts);
         const data = Object.values(candidateCounts);
         const backgroundColors = labels.map(label => getColorForNuance(label));
@@ -73,24 +69,26 @@ const ChartPage = () => {
         };
     };
 
-    // Gérer le changement du code de nuance sélectionné
     const handleNuanceChange = (event) => {
         setSelectedNuance(event.target.value);
+        setCurrentPage(1);
     };
 
-    // Gérer le changement du terme de recherche
     const handleSearchChange = (event) => {
         setSearchTerm(event.target.value);
+        setCurrentPage(1);
     };
 
-    // Filtrer les candidats par libelleNuance sélectionné et terme de recherche
     const filteredCandidates = results.filter(result => 
         (!selectedNuance || result.libelleNuance === selectedNuance) &&
         (result.nomCandidat.toLowerCase().includes(searchTerm.toLowerCase()) || 
          result.prenomCandidat.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
-    // Options pour le graphique en barres
+    const indexOfLastResult = currentPage * resultsPerPage;
+    const indexOfFirstResult = indexOfLastResult - resultsPerPage;
+    const currentCandidates = filteredCandidates.slice(indexOfFirstResult, indexOfLastResult);
+
     const barOptions = {
         responsive: true,
         maintainAspectRatio: false,
@@ -101,9 +99,17 @@ const ChartPage = () => {
         },
     };
 
+    const paginate = (pageNumber) => setCurrentPage(pageNumber);
+
+    const totalPages = Math.ceil(filteredCandidates.length / resultsPerPage);
+    const visiblePages = 5;
+    const startPage = Math.max(1, currentPage - Math.floor(visiblePages / 2));
+    const endPage = Math.min(totalPages, startPage + visiblePages - 1);
+
+    const pages = [...Array(endPage - startPage + 1)].map((_, i) => startPage + i);
+
     return (
         <div className="flex h-screen overflow-hidden">
-            {/* Navbar à gauche pour les filtres */}
             <nav className="w-1/4 bg-gray-800 p-4 overflow-y-auto text-white">
                 <h2 className="text-lg font-bold mb-4"> Filtre</h2>
                 <div className="mb-4">
@@ -123,7 +129,7 @@ const ChartPage = () => {
                         type="text"
                         value={searchTerm}
                         onChange={handleSearchChange}
-                        placeholder="Rechercher un candidat"
+                        placeholder="Rechercher un candidat (Nom)"
                         className="p-2 border border-gray-300 rounded mb-4 focus:outline-none bg-white text-gray-800 w-full"
                     />
                     <div className="flex flex-col">
@@ -132,20 +138,47 @@ const ChartPage = () => {
                 </div>
             </nav>
 
-            {/* Contenu principal avec le graphique */}
             <main className="flex-1 p-4 overflow-y-auto">
                 <div style={{ height: '500px', width: '900px' }}>
                     <Bar data={prepareBarChartData()} options={barOptions} />
                 </div>
-                <div className="mt-8" style={{ marginTop: '50px' }}>
+                <div className="mt-8" style={{ marginTop: '30px' }}>
                     <h2 className="text-xl font-bold mb-4 ml-6">Candidats pour le parti : {selectedNuance}</h2>
                     <ul>
-                        {filteredCandidates.map(candidate => (
-                            <li key={candidate.id} className="mb-2 ml-6">
+                        {currentCandidates.map(candidate => (
+                            <li key={candidate.id} className="mb-1 ml-6">
                                 {candidate.prenomCandidat} {candidate.nomCandidat} ({candidate.civiliteCandidat}) - {candidate.departement}, {candidate.circonscription}
                             </li>
                         ))}
                     </ul>
+
+                    <div className="mt-4 flex justify-center">
+                        <button
+                            onClick={() => paginate(currentPage - 1)}
+                            className={`p-2 mx-1 rounded ${currentPage === 1 ? 'bg-gray-700 text-gray-300' : 'bg-blue-600 text-white hover:bg-blue-700 hover:text-white'}`}
+                            disabled={currentPage === 1}
+                        >
+                            Précédent
+                        </button>
+
+                        {pages.map((page, index) => (
+                            <button
+                                key={index}
+                                onClick={() => paginate(page)}
+                                className={`p-2 mx-1 rounded ${currentPage === page ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-white'}`}
+                            >
+                                {page}
+                            </button>
+                        ))}
+
+                        <button
+                            onClick={() => paginate(currentPage + 1)}
+                            className={`p-2 mx-1 rounded ${currentPage === totalPages ? 'bg-gray-700 text-gray-300' : 'bg-blue-600 text-white hover:bg-blue-700 hover:text-white'}`}
+                            disabled={currentPage === totalPages}
+                        >
+                            Suivant
+                        </button>
+                    </div>
                 </div>
             </main>
         </div>

@@ -5,6 +5,9 @@ const HomePage = () => {
     const [results, setResults] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedDepartment, setSelectedDepartment] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const resultsPerPage = 9;
+    const pagesToShow = 10;
 
     useEffect(() => {
         fetch('/results.json')
@@ -14,16 +17,22 @@ const HomePage = () => {
 
     const handleSearchChange = (event) => {
         setSearchTerm(event.target.value);
+        setCurrentPage(1);
     };
 
     const handleDepartmentChange = (event) => {
         setSelectedDepartment(event.target.value);
+        setCurrentPage(1);
     };
 
     const filteredResults = results.filter(result =>
         result.nomCandidat.toLowerCase().includes(searchTerm.toLowerCase()) &&
         (selectedDepartment === '' || result.departement === selectedDepartment)
     );
+
+    const indexOfLastResult = currentPage * resultsPerPage;
+    const indexOfFirstResult = indexOfLastResult - resultsPerPage;
+    const currentResults = filteredResults.slice(indexOfFirstResult, indexOfLastResult);
 
     const departments = results.reduce((acc, curr) => {
         if (!acc.includes(curr.departement)) {
@@ -32,9 +41,17 @@ const HomePage = () => {
         return acc;
     }, []);
 
+    const paginate = (pageNumber) => setCurrentPage(pageNumber);
+
+    const totalPages = Math.ceil(filteredResults.length / resultsPerPage);
+    const visiblePages = Math.min(pagesToShow, totalPages);
+    const startPage = Math.max(1, currentPage - Math.floor(visiblePages / 2));
+    const endPage = Math.min(totalPages, startPage + visiblePages - 1);
+
+    const pages = [...Array(endPage - startPage + 1)].map((_, i) => startPage + i);
+
     return (
         <div className="flex h-screen bg-gray-900 text-white">
-
             <nav className="w-1/4 bg-gray-800 p-4 overflow-y-auto">
                 <h1 className="text-2xl mb-4">Résultats des législatives 2024</h1>
                 <div className="mb-4">
@@ -59,16 +76,14 @@ const HomePage = () => {
                     </select>
                 </div>
                 <div className="flex flex-col">
-                    <Link to="/" className="p-2 bg-blue-600 text-white rounded mb-2 text-center hover:bg-blue-700 transition duration-300">Home</Link>
-                    <Link to="/chart" className="p-2 bg-blue-600 text-white rounded mb-2 text-center hover:bg-blue-700 transition duration-300">Voir le Graphique</Link>
+                    <Link to="/chart" className="p-2 bg-blue-600 text-white rounded mb-2 text-center hover:bg-blue-700 transition duration-300">Voir Data Graphique</Link>
                 </div>
             </nav>
-
 
             <div className="flex-1 overflow-y-auto bg-gray-900 p-4">
                 <div className="container mx-auto">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {filteredResults.map((result, index) => (
+                        {currentResults.map((result, index) => (
                             <div key={index} className="p-4 border rounded shadow bg-gray-800 text-white">
                                 <h2 className="text-xl font-bold">{result.nomCandidat} {result.prenomCandidat}</h2>
                                 <p><strong>Département:</strong> {result.departement}</p>
@@ -79,6 +94,34 @@ const HomePage = () => {
                                 <p><strong>Libellé Nuance:</strong> {result.libelleNuance}</p>
                             </div>
                         ))}
+                    </div>
+
+                    <div className="mt-8 flex justify-center">
+                        <button
+                            onClick={() => paginate(currentPage - 1)}
+                            className={`p-2 mx-1 rounded ${currentPage === 1 ? 'bg-gray-700 text-gray-300' : 'bg-blue-600 text-white hover:bg-blue-700 hover:text-white'}`}
+                            disabled={currentPage === 1}
+                        >
+                            Précédent
+                        </button>
+
+                        {pages.map((page, index) => (
+                            <button
+                                key={index}
+                                onClick={() => paginate(page)}
+                                className={`p-2 mx-1 rounded ${currentPage === page ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-white'}`}
+                            >
+                                {page}
+                            </button>
+                        ))}
+
+                        <button
+                            onClick={() => paginate(currentPage + 1)}
+                            className={`p-2 mx-1 rounded ${currentPage === totalPages ? 'bg-gray-700 text-gray-300' : 'bg-blue-600 text-white hover:bg-blue-700 hover:text-white'}`}
+                            disabled={currentPage === totalPages}
+                        >
+                            Suivant
+                        </button>
                     </div>
                 </div>
             </div>
