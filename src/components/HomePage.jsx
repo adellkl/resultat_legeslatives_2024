@@ -6,6 +6,8 @@ const HomePage = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedDepartment, setSelectedDepartment] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
+    const [selectedTerm, setSelectedTerm] = useState('');
+    const [definitions, setDefinitions] = useState([]);
     const resultsPerPage = 9;
     const pagesToShow = 10;
 
@@ -13,6 +15,21 @@ const HomePage = () => {
         fetch('/results.json')
             .then(response => response.json())
             .then(data => setResults(data));
+    }, []);
+
+    useEffect(() => {
+        // Exemple de définitions pour les termes politiques
+        const politicsTerms = [
+            { term: 'Parti politique', definition: 'Un parti politique est une organisation politique qui a pour but de participer au processus politique en proposant des programmes et en présentant des candidats lors des élections.' },
+            { term: 'Circonscription électorale', definition: 'Une circonscription électorale est une division géographique utilisée pour l\'élection de représentants politiques dans un système électoral.' },
+            { term: 'Triangulaire', definition: 'Dans le contexte politique électoral en France, une triangulaire se produit lorsqu\'il y a trois candidats ou plus ayant chacun une chance de l\'emporter dans une élection.' },
+            { term: 'Mandat', definition: 'Un mandat politique désigne la période pendant laquelle un individu élu occupe une fonction publique, généralement pour représenter une circonscription ou un territoire donné.' },
+            { term: 'Député', definition: 'Un député est un représentant élu au parlement d\'un pays, chargé de représenter les citoyens de sa circonscription et de participer à l\'élaboration des lois.' },
+            { term: 'Sénateur', definition: 'Un sénateur est un membre du Sénat, la chambre haute du parlement dans certains systèmes politiques, chargé de représenter les intérêts des États, provinces ou régions.' },
+        ];
+
+        // Initialiser les définitions avec tous les termes au début
+        setDefinitions(politicsTerms);
     }, []);
 
     const handleSearchChange = (event) => {
@@ -23,6 +40,17 @@ const HomePage = () => {
     const handleDepartmentChange = (event) => {
         setSelectedDepartment(event.target.value);
         setCurrentPage(1);
+    };
+
+    const handleTermChange = (event) => {
+        const selectedTerm = event.target.value;
+        setSelectedTerm(selectedTerm);
+
+        // Trouver la définition du terme sélectionné
+        const foundDefinition = definitions.find(def => def.term === selectedTerm);
+
+        // Mettre à jour les définitions trouvées
+        setDefinitions(foundDefinition ? [foundDefinition] : []);
     };
 
     const filteredResults = results.filter(result =>
@@ -77,7 +105,27 @@ const HomePage = () => {
                 </div>
                 <div className="flex flex-col">
                     <Link to="/chart" className="p-2 bg-blue-600 text-white rounded mb-2 text-center hover:bg-blue-700 transition duration-300">Voir Data Graphique</Link>
+                </div> <br></br>
+                <div className="mb-4">
+                    <select
+                        value={selectedTerm}
+                        onChange={handleTermChange}
+                        className="p-2 w-full bg-gray-700 text-white border border-gray-600 rounded focus:outline-none"
+                    >
+                        <option value="">Choisir un terme politique</option>
+                        {definitions.map((def, index) => (
+                            <option key={index} value={def.term}>{def.term}</option>
+                        ))}
+                    </select>
+                    <ul className="mt-2">
+                        {definitions.map((def, index) => (
+                            <li key={index} className="mb-1">
+                                <strong>{def.term}: </strong>{def.definition}
+                            </li>
+                        ))}
+                    </ul>
                 </div>
+               
             </nav>
 
             <div className="flex-1 overflow-y-auto bg-gray-900 p-4">
