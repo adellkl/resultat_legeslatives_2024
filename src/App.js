@@ -1,24 +1,26 @@
-import logo from './logo.svg';
-import './App.css';
+import React, { useEffect, useState } from 'react';
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import Navbar from './components/Navbar';
+import ChartPage from './components/ChartPage';
+import HomePage from './components/HomePage';
 
-function App() {
+const App = () => {
+  const [results, setResults] = useState([]);
+
+  useEffect(() => {
+    fetch('/results.json')
+      .then(response => response.json())
+      .then(data => setResults(data));
+  }, []);
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <Router>
+      <Navbar />
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/chart" element={<ChartPage data={results} />} />
+      </Routes>
+    </Router>
   );
 }
 
